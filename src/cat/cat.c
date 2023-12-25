@@ -1,71 +1,66 @@
-#include <stdio.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-typedef struct {
-    bool number_nonblank;
-    bool mark_endl;
-    bool number;
-    bool squeeze_blank;
-    bool tab;
-    bool print_nonprintable;
-}Flags;
+typedef struct Flags {
+  bool b, e, n, s, t, v;
+} Flags;
 
-Flags cat_read_flags(int argc, char *argv[]) {
-    struct option longOptions[] = {
-        {"number-nonblank", 0, NULL, 'b'},
-        {"number", 0, NULL, 'n'},
-        {"squeeze-blank", 0, NULL, 's'},
-        {NULL, 0, NULL, 0}
-    };
-    int current_flag = getopt_long(argc, argv, "bevEnstT", longOptions, NULL);
-    Flags flags = {false, false, false, false, false};
-    for (;current_flag != -1
-         ;current_flag = getopt_long(argc, argv, "bevEnstT", longOptions, NULL)) {
-            switch (current_flag) {
-                case 'b':
-                    flags.number_nonblank = true;
-                    break;
-                case 'e':
-                    flags.mark_endl = true;
-                case 'v':
-                    flags.print_nonprintable = true;
-                    break;
-                case 'E':
-                    flags.mark_endl = true;
-                    break;
-                case 'n':
-                    flags.number = true;
-                    break;
-                case 's':
-                    flags.squeeze_blank = true;
-                    break;
-                case 't':
-                    flags.tab = true;
-                    flags.print_nonprintable = true;
-                case 'T':
-                    flags.tab = true;
-                    break;
-            }
-
-    }
-    return flags;
+Flags flag_parser(int argc, char** argv) {
+  Flags flag = {false};
+  struct option LongOptions[] = {{"number-nonblank", 0, NULL, 'b'},
+                                 {"number", 0, NULL, 'n'},
+                                 {"squeeze-blank", 0, NULL, 's'},
+                                 {NULL, 0, NULL, 0}};
+  int current_flag = getopt_long(argc, argv, "beEnstTv", LongOptions, NULL);
+  switch (current_flag) {
+    case 'b':
+      flag.b = true;
+      break;
+    case 'e':
+      flag.e = true;
+    case 'E':
+      flag.e = true;
+      break;
+    case 'n':
+      flag.n = true;
+      break;
+    case 's':
+      flag.s = true;
+      break;
+    case 't':
+      flag.t = true;
+      flag.v = true;
+    case 'T':
+      flag.t = true;
+      break;
+    case 'v':
+      flag.v = true;
+      break;
+  }
 }
 
+void flag_mark_endl(Flags flag, char* line, int read) {
+  for (int i = 0; i < read; ++i) {
+    if (flag.e && line[i] == '\n') putchar('$');
+    putchar(line[i]);
+  }
+}
 
-int main(int argc, char *argv[]) {
-    Flags flags = cat_read_flags(argc, argv);
-    if (flags.number_nonblank)
-        printf("number_nonblank\n");
-    if (flags.mark_endl)
-        printf("mark_endl\n");
-    if (flags.number)
-        printf("number\n");
-    if (flags.squeeze_blank)
-        printf("squeeze_blank\n");
-    if (flags.tab)
-        printf("tab\n");
-    if (flags.print_nonprintable)
-        printf("print_nonprintable\n");
-    return 0;
+void read_file() { return; }
+
+int main(int argc, char** argv) {
+  Flags flag = flag_parser(argc, argv);
+  FILE* f = fopen(argv[1], "r");
+  char* line = NULL;
+  size_t memline = 0;
+  int read = 0;
+  read = getline(&line, &memline, f);
+  while (read != -1) {
+    flag_mark_endl(flag, line, read);
+    read = getline(&line, &memline, f);
+  }
+  fclose(f);
+  return 0;
 }
